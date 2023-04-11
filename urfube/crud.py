@@ -41,8 +41,8 @@ def get_user_history(user: schemas.User):
     return list(get_user(user.id).history)
 
 
-def get_history_by_id(id: int):
-    return models.History.get_by_id(id)
+def get_history_by_id(history_id: int):
+    return models.History.get_by_id(history_id)
 
 
 def upload_video(video: schemas.VideoUpload, user: schemas.User):

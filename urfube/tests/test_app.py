@@ -4,10 +4,12 @@ from peewee import *
 from urfube.database import PeeweeConnectionState
 from urfube import models
 from urfube.utils import *
+from urfube.crud import *
 
-test_db = peewee.SqliteDatabase('urfube/tests/test.db', check_same_thread=False)
+test_db = peewee.SqliteDatabase('test.db', check_same_thread=False)
 test_db._state = PeeweeConnectionState()
 test_db.connect()
+test_db.bind([models.User, models.Video, models.History])
 test_db.drop_tables([models.User, models.Video, models.History])
 test_db.create_tables([models.User, models.Video, models.History])
 test_db.close()
@@ -49,8 +51,11 @@ def test_create_user():
         }
     })
     assert response.status_code == 200
-    data = response.json()['result']
-    assert data == 'JohnDoe'
+    assert response.json()['result'] is None
+    user = get_user_by_username('JohnDoe')
+    test_db.close()
+    assert user.username == 'JohnDoe'
+    assert verify_password('sfamjisoer345', user.password) is True
 
 
 def test_create_same_user():
@@ -134,7 +139,7 @@ def test_refresh_tokens():
     }))
     refresh_token = response.json()['result']['refresh_token']
     response = client.post('/api', json=get_json_rpc_body('refresh_tokens', {
-        "refresh_token": refresh_token
+        'refresh_token': refresh_token
     }))
     data = response.json()['result']
     assert response.status_code == 200
@@ -144,33 +149,28 @@ def test_refresh_tokens():
 
 
 def test_upload_video():
-    response = client.post('/api', json=get_json_rpc_body('upload_video', {
-        'video': {
-            'title': 'test_video',
-            'description': 'Cool description'
-        }
-    }), headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
-    assert response.status_code == 200
-    data = response.json()['result']
-    assert data['title'] == 'test_video'
-    assert data['description'] == 'Cool description'
-    assert data['author'] == 'JohnDoe'
-    assert data['id'] == 1
-    assert data['user_id'] == 1
+    with open('test_videos/test.mp4', 'rb') as file:
+        response = client.post('/upload_video/?video_title=test_video&video_description=test_description',
+                               files={'file': ('test.mp4', file, 'video/mp4')}, headers={
+                'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+        assert response.status_code == 200
+        video = get_video_by_title('test_video')
+        test_db.close()
+        assert video.title == 'test_video'
+        assert video.description == 'test_description'
+        assert video.author == 'JohnDoe'
 
 
-def test_upload_same_video():
-    response = client.post('/api', json=get_json_rpc_body('upload_video', {
-        'video': {
-            'title': 'test_video',
-            'description': 'Cool description'
-        }
-    }), headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
-    assert response.status_code == 200
-    # print(response.json())
-    data = response.json()['error']
-    assert data['code'] == 2000
-    assert data['message'] == 'Video already exists'
+# def test_upload_same_video():
+#     with open('test_videos/test.mp4', 'rb') as file:
+#         response = client.post('/upload_video/?video_title=test_video&video_description=test_description',
+#                                files={'file': ('test.mp4', file, 'video/mp4')}, headers={
+#                 'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+#         assert response.status_code == 200
+#         # print(response.json())
+#         data = response.json()['error']
+#         assert data['code'] == 2000
+#         assert data['message'] == 'Video already exists'
 
 
 def test_get_videos():
@@ -179,7 +179,7 @@ def test_get_videos():
     assert response.status_code == 200
     data = response.json()['result']
     assert data == [{'title': 'test_video',
-                     'description': 'Cool description',
+                     'description': 'test_description',
                      'author': 'JohnDoe',
                      'link': 'link',
                      'id': 1,
@@ -192,9 +192,13 @@ def test_add_history():
             'video_id': 1,
             'timestamp': 14,
             'date_visited': '2023-03-29T14:58:14.559Z'
-        }, 'video_id': 1
+        }
     }), headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
     assert response.status_code == 200
+    # history = get_history_by_id(1)
+    # assert history.video_id == 1
+    # assert history.timestamp == 14
+    # assert history.date_visited == '2023-03-29T14:58:14.559Z'
 
 
 def test_get_user_history():

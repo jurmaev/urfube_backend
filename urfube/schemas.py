@@ -50,7 +50,6 @@ class Video(VideoUpload):
     id: int
     link: str
     author: str
-    # user: str
     user_id: int
 
     class Config:
