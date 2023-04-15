@@ -16,7 +16,7 @@ class User(BaseModel):
 class Video(BaseModel):
     title = CharField()
     description = CharField()
-    link = CharField()
+    # link = CharField()
     author = CharField()
     user = ForeignKeyField(User, backref='videos')
 
@@ -28,10 +28,11 @@ class History(BaseModel):
     date_visited = DateTimeField()
     user = ForeignKeyField(User, backref='history')
 
-# class Comment(BaseModel):
-#     content = CharField()
-#     user = ForeignKeyField(User, backref='comments')
-#     video = ForeignKeyField(Video, backref='comments')
+
+class Comment(BaseModel):
+    content = CharField()
+    user = ForeignKeyField(User, backref='comments')
+    video = ForeignKeyField(Video, backref='comments')
 #
 #
 # class Like(BaseModel):

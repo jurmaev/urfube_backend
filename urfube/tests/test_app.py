@@ -6,12 +6,12 @@ from urfube import models
 from urfube.utils import *
 from urfube.crud import *
 
-test_db = peewee.SqliteDatabase('test.db', check_same_thread=False)
+test_db = peewee.SqliteDatabase('urfube/tests/test.db', check_same_thread=False)
 test_db._state = PeeweeConnectionState()
 test_db.connect()
 test_db.bind([models.User, models.Video, models.History])
-test_db.drop_tables([models.User, models.Video, models.History])
-test_db.create_tables([models.User, models.Video, models.History])
+test_db.drop_tables([models.User, models.Video, models.History, models.Comment])
+test_db.create_tables([models.User, models.Video, models.History, models.Comment])
 test_db.close()
 
 
@@ -149,7 +149,7 @@ def test_refresh_tokens():
 
 
 def test_upload_video():
-    with open('test_videos/test.mp4', 'rb') as file:
+    with open('urfube/tests/test_videos/test.mp4', 'rb') as file:
         response = client.post('/upload_video/?video_title=test_video&video_description=test_description',
                                files={'file': ('test.mp4', file, 'video/mp4')}, headers={
                 'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
@@ -181,7 +181,6 @@ def test_get_videos():
     assert data == [{'title': 'test_video',
                      'description': 'test_description',
                      'author': 'JohnDoe',
-                     'link': 'link',
                      'id': 1,
                      'user_id': 1}]
 
@@ -195,10 +194,11 @@ def test_add_history():
         }
     }), headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
     assert response.status_code == 200
-    # history = get_history_by_id(1)
-    # assert history.video_id == 1
-    # assert history.timestamp == 14
-    # assert history.date_visited == '2023-03-29T14:58:14.559Z'
+    history = get_history_by_id(1)
+    test_db.close()
+    assert history.video_id == 1
+    assert history.timestamp == 14
+    assert history.date_visited == '2023-03-29 14:58:14.559000+00:00'
 
 
 def test_get_user_history():
@@ -232,3 +232,79 @@ def test_update_user_history():
         'timestamp': 20,
         'date_visited': '2023-03-29T14:58:14.559000+00:00'
     }]
+
+
+def test_generate_link():
+    response = client.post('/api', json=get_json_rpc_body('generate_link', {'video_id': 1}))
+    assert response.status_code == 200
+    data = response.json()['result']
+    assert data == create_presigned_url('jurmaev', '1.mp4')
+
+
+def test_generate_wrong_link():
+    response = client.post('/api', json=get_json_rpc_body('generate_link', {'video_id': 2}))
+    assert response.status_code == 200
+    data = response.json()['error']
+    assert data['code'] == 3002
+    assert data['message'] == 'Video does not exist'
+
+
+def test_add_comment():
+    response = client.post('/api', json=get_json_rpc_body('add_comment', {
+        "comment": {
+            "content": "great video!",
+            "video_id": 1
+        }
+    }), headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    assert response.json()['result'] is None
+    comment = get_comment_by_id(1)
+    test_db.close()
+    assert comment.id == 1
+    assert comment.content == 'great video!'
+    assert comment.video_id == 1
+    assert comment.user_id == 1
+
+
+def test_edit_comment():
+    response = client.post('/api',
+                           json=get_json_rpc_body('edit_comment', {'comment_id': 1, 'new_content': 'not cool!'}),
+                           headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    assert response.json()['result'] is None
+    comment = get_comment_by_id(1)
+    test_db.close()
+    assert comment.id == 1
+    assert comment.content == 'not cool!'
+    assert comment.video_id == 1
+    assert comment.user_id == 1
+
+
+def test_edit_wrong_comment():
+    response = client.post('/api',
+                           json=get_json_rpc_body('edit_comment', {'comment_id': 2, 'new_content': 'not cool!'}),
+                           headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    data = response.json()['error']
+    assert data['code'] == 4000
+    assert data['message'] == 'Comment does not exist'
+
+
+def test_delete_comment():
+    response = client.post('/api',
+                           json=get_json_rpc_body('delete_comment', {'comment_id': 1}),
+                           headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    assert response.json()['result'] is None
+    assert get_comment_by_id(1) is None
+    test_db.close()
+
+
+def test_delete_wrong_comment():
+    response = client.post('/api',
+                           json=get_json_rpc_body('delete_comment', {'comment_id': 1}),
+                           headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    data = response.json()['error']
+    assert data['code'] == 4000
+    assert data['message'] == 'Comment does not exist'

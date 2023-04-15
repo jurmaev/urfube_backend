@@ -5,7 +5,7 @@ import os
 
 
 class Settings(BaseSettings):
-    database_name: str = 'urfube.db'
+    database_name: str = 'urfube/urfube.db'
     secret_key: str
     access_token_expire_minutes: int
     refresh_token_expire_minutes: int

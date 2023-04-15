@@ -48,7 +48,7 @@ class VideoUpload(BaseModel):
 
 class Video(VideoUpload):
     id: int
-    link: str
+    # link: str
     author: str
     user_id: int
 
@@ -61,6 +61,20 @@ class History(BaseModel):
     video_id: int
     timestamp: int
     date_visited: datetime.datetime
+
+    class Config:
+        orm_mode = True
+        getter_dict = PeeweeGetterDict
+
+
+class CommentUpload(BaseModel):
+    content: str
+    video_id: int
+
+
+class Comment(CommentUpload):
+    id: int
+    user_id: int
 
     class Config:
         orm_mode = True

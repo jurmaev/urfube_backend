@@ -1,7 +1,8 @@
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Annotated
 from urfube import database, crud
-from urfube.utils import verify_password, create_access_token, create_refresh_token, upload_file, upload_fileobj
+from urfube.utils import verify_password, create_access_token, create_refresh_token, upload_fileobj, \
+    create_presigned_url
 from urfube.dependencies import *
 from urfube.errors import *
 from fastapi import Security, File, UploadFile, Request
@@ -11,13 +12,15 @@ import time
 
 origins = ['*']
 database.db.connect()
-database.db.create_tables([models.User, models.Video])
+database.db.create_tables([models.User, models.Video, models.History, models.Comment])
 database.db.close()
 
 logger = logging.getLogger(__name__)
-logger.setLevel('INFO')
-handler = logging.FileHandler('dev.log')
-logger.addHandler(handler)
+logging.basicConfig(level=logging.INFO)
+
+
+# handler = logging.FileHandler('urfube/dev.log')
+# logger.addHandler(handler)
 
 
 @asynccontextmanager
@@ -30,7 +33,7 @@ async def logging_middleware(ctx: jsonrpc.JsonRpcContext):
 
 
 app = jsonrpc.API()
-api = jsonrpc.Entrypoint('/api', middlewares=[logging_middleware], tags=['user', 'videos', 'history'])
+api = jsonrpc.Entrypoint('/api', middlewares=[logging_middleware], tags=['user', 'videos', 'history', 'comment'])
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=['*'],
                    allow_headers=['*'])
 
@@ -95,13 +98,12 @@ def refresh_tokens(refresh_token: str) -> schemas.Token:
 @app.post('/upload_video/', tags=['videos'])
 async def upload_video(user: Annotated[schemas.User, Depends(get_auth_user)], file: UploadFile, video_title: str,
                        video_description: str):
-    # db_video = crud.get_video_by_title(video_title)
-    # if db_video:
-    #     raise VideoAlreadyExistsError
-    upload_result = upload_fileobj(file.file, 'jurmaev', f'{user.username}/{file.filename}')
+    if get_video_by_title(video_title) is not None:
+        raise VideoAlreadyExistsError
+    db_video = crud.upload_video(schemas.VideoUpload(title=video_title, description=video_description), user)
+    upload_result = upload_fileobj(file.file, 'jurmaev', f'{db_video.id}.mp4', file.size)
     if not upload_result:
         raise VideoUploadFailedError
-    crud.upload_video(schemas.VideoUpload(title=video_title, description=video_description), user)
 
 
 @api.method(errors=[], dependencies=[Depends(get_db)], tags=['videos'])
@@ -120,9 +122,38 @@ def get_user_history(user: Annotated[schemas.User, Depends(get_auth_user)]) -> L
     return crud.get_user_history(user)
 
 
+@api.method(errors=[LinkGenerateFailedError], dependencies=[Depends(get_db)], tags=['videos'])
+def generate_link(video_id: int) -> str:
+    if get_video_by_id(video_id) is None:
+        raise VideoDoesNotExistError
+    link = create_presigned_url('jurmaev', f'{video_id}.mp4')
+    if link is None:
+        raise LinkGenerateFailedError
+    return link
+
+
+@api.method(errors=[], dependencies=[Depends(get_db)], tags=['comment'])
+def add_comment(user: Annotated[schemas.User, Depends(get_auth_user)], comment: schemas.CommentUpload):
+    crud.add_comment(comment.content, comment.video_id, user)
+
+
+@api.method(errors=[], dependencies=[Depends(get_db)], tags=['comment'])
+def delete_comment(user: Annotated[schemas.User, Depends(get_auth_user)], comment_id: int):
+    if get_comment_by_id(comment_id) is None:
+        raise CommentDoesNotExistError
+    crud.delete_comment(comment_id)
+
+
+@api.method(errors=[], dependencies=[Depends(get_db)], tags=['comment'])
+def edit_comment(user: Annotated[schemas.User, Depends(get_auth_user)], comment_id: int, new_content: str):
+    if get_comment_by_id(comment_id) is None:
+        raise CommentDoesNotExistError
+    crud.edit_comment(comment_id, new_content)
+
+
 app.bind_entrypoint(api)
 
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run('app:app', port=5000, access_log=False)
+    uvicorn.run('urfube.app:app', port=5000, access_log=False)

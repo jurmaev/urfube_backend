@@ -44,14 +44,31 @@ class UserNotFoundError(jsonrpc.BaseError):
     MESSAGE = 'Could not find user'
 
 
-class VideoAlreadyExistsError(jsonrpc.BaseError):
-    CODE = 2000
-    MESSAGE = 'Video already exists'
+# class S3ClientError(jsonrpc.BaseError):
+#     CODE = 3000
+#     MESSAGE = 'S3 client error'
 
-class S3ClientError(jsonrpc.BaseError):
-    CODE = 3000
-    MESSAGE = 'S3 client error'
 
 class VideoUploadFailedError(jsonrpc.BaseError):
-    CODE = 3001
+    CODE = 3000
     MESSAGE = 'Video upload failed'
+
+
+class VideoAlreadyExistsError(jsonrpc.BaseError):
+    CODE = 3001
+    MESSAGE = 'Video already exists'
+
+
+class VideoDoesNotExistError(jsonrpc.BaseError):
+    CODE = 3002
+    MESSAGE = 'Video does not exist'
+
+
+class LinkGenerateFailedError(jsonrpc.BaseError):
+    CODE = 3003
+    MESSAGE = 'Failed to generate video link'
+
+
+class CommentDoesNotExistError(jsonrpc.BaseError):
+    CODE = 4000
+    MESSAGE = 'Comment does not exist'
