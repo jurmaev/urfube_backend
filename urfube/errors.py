@@ -72,3 +72,13 @@ class LinkGenerateFailedError(jsonrpc.BaseError):
 class CommentDoesNotExistError(jsonrpc.BaseError):
     CODE = 4000
     MESSAGE = 'Comment does not exist'
+
+
+class LikeAlreadyExistsError(jsonrpc.BaseError):
+    CODE = 5000
+    MESSAGE = 'Like already exists'
+
+
+class LikeDoesNotExistError(jsonrpc.BaseError):
+    CODE = 5001
+    MESSAGE = 'Like does not exist'

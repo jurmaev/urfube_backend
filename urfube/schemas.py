@@ -84,3 +84,12 @@ class Comment(CommentUpload):
     class Config:
         orm_mode = True
         getter_dict = PeeweeGetterDict
+
+
+class Like(BaseModel):
+    user_id: int
+    video_id: int
+
+    class Config:
+        orm_mode = True
+        getter_dict = PeeweeGetterDict

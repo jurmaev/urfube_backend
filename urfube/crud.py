@@ -73,3 +73,15 @@ def edit_comment(comment_id: int, new_content: str):
 def get_comments(video_id: int):
     return [{'content': comment.content, 'author': comment.user.username, 'id': comment.id} for comment in
             list(models.Video.get_by_id(video_id).comments)]
+
+
+def user_liked_video(user: schemas.User, video_id: int):
+    return len(models.Like.select(models.Like.video_id == video_id, models.Like.user_id == user)) == 1
+
+
+def add_like(user: schemas.User, video_id: int):
+    models.Like.create(user=user, video=video_id)
+
+
+def remove_like(user: schemas.User, video_id: int):
+    models.Like.delete().where(models.Like.user_id == user, models.Like.video_id == video_id).execute()

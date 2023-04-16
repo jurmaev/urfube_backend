@@ -31,8 +31,8 @@ class Comment(BaseModel):
     content = CharField()
     user = ForeignKeyField(User, backref='comments')
     video = ForeignKeyField(Video, backref='comments')
-#
-#
-# class Like(BaseModel):
-#     user = ForeignKeyField(User, backref='likes')
-#     video = ForeignKeyField(User, backref='likes')
+
+
+class Like(BaseModel):
+    user = ForeignKeyField(User, backref='likes')
+    video = ForeignKeyField(User, backref='likes')

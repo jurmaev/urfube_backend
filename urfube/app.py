@@ -5,14 +5,14 @@ from urfube.utils import verify_password, create_access_token, create_refresh_to
     create_presigned_url
 from urfube.dependencies import *
 from urfube.errors import *
-from fastapi import Security, File, UploadFile, Request
+from fastapi import UploadFile
 import logging
 from contextlib import asynccontextmanager
 import time
 
 origins = ['*']
 database.db.connect()
-database.db.create_tables([models.User, models.Video, models.History, models.Comment])
+database.db.create_tables([models.User, models.Video, models.History, models.Comment, models.Like])
 database.db.close()
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ async def logging_middleware(ctx: jsonrpc.JsonRpcContext):
 
 
 app = jsonrpc.API()
-api = jsonrpc.Entrypoint('/api', middlewares=[logging_middleware], tags=['user', 'video', 'history', 'comment'])
+api = jsonrpc.Entrypoint('/api', middlewares=[logging_middleware], tags=['user', 'video', 'history', 'comment', 'like'])
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=['*'],
                    allow_headers=['*'])
 
@@ -166,6 +166,24 @@ def get_video_info(video_id: int) -> schemas.Video:
     if db_video is None:
         raise VideoDoesNotExistError
     return db_video
+
+
+@api.method(errors=[LikeAlreadyExistsError, VideoDoesNotExistError], dependencies=[Depends(get_db)], tags=['like'])
+def post_like(user: Annotated[schemas.User, Depends(get_auth_user)], video_id: int):
+    if get_video_by_id(video_id) is None:
+        raise VideoDoesNotExistError
+    if user_liked_video(user, video_id):
+        raise LikeAlreadyExistsError
+    add_like(user, video_id)
+
+
+@api.method(errors=[LikeDoesNotExistError, VideoDoesNotExistError], dependencies=[Depends(get_db)], tags=['like'])
+def remove_like(user: Annotated[schemas.User, Depends(get_auth_user)], video_id: int):
+    if get_video_by_id(video_id) is None:
+        raise VideoDoesNotExistError
+    if not user_liked_video(user, video_id):
+        raise LikeDoesNotExistError
+    crud.remove_like(user, video_id)
 
 
 app.bind_entrypoint(api)

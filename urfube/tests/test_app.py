@@ -10,8 +10,8 @@ test_db = peewee.SqliteDatabase('urfube/tests/test.db', check_same_thread=False)
 test_db._state = PeeweeConnectionState()
 test_db.connect()
 test_db.bind([models.User, models.Video, models.History])
-test_db.drop_tables([models.User, models.Video, models.History, models.Comment])
-test_db.create_tables([models.User, models.Video, models.History, models.Comment])
+test_db.drop_tables([models.User, models.Video, models.History, models.Comment, models.Like])
+test_db.create_tables([models.User, models.Video, models.History, models.Comment, models.Like])
 test_db.close()
 
 
@@ -162,14 +162,13 @@ def test_upload_video():
 
 
 # def test_upload_same_video():
-#     with open('test_videos/test.mp4', 'rb') as file:
+#     with open('urfube/tests/test_videos/test.mp4', 'rb') as file:
 #         response = client.post('/upload_video/?video_title=test_video&video_description=test_description',
 #                                files={'file': ('test.mp4', file, 'video/mp4')}, headers={
 #                 'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
 #         assert response.status_code == 200
-#         # print(response.json())
 #         data = response.json()['error']
-#         assert data['code'] == 2000
+#         assert data['code'] == 3001
 #         assert data['message'] == 'Video already exists'
 
 
@@ -357,3 +356,63 @@ def test_get_wrong_video_info():
     data = response.json()['error']
     assert data['code'] == 3002
     assert data['message'] == 'Video does not exist'
+
+
+def test_post_like():
+    response = client.post('/api',
+                           json=get_json_rpc_body('post_like', {'video_id': 1}),
+                           headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    assert user_liked_video(1, 1) is True
+    test_db.close()
+    assert response.json()['result'] is None
+
+
+def test_post_wrong_like():
+    response = client.post('/api',
+                           json=get_json_rpc_body('post_like', {'video_id': 2}),
+                           headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    data = response.json()['error']
+    assert data['code'] == 3002
+    assert data['message'] == 'Video does not exist'
+
+
+def test_post_same_like():
+    response = client.post('/api',
+                           json=get_json_rpc_body('post_like', {'video_id': 1}),
+                           headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    data = response.json()['error']
+    assert data['code'] == 5000
+    assert data['message'] == 'Like already exists'
+
+
+def test_remove_like():
+    response = client.post('/api',
+                           json=get_json_rpc_body('remove_like', {'video_id': 1}),
+                           headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    assert user_liked_video(1, 1) is False
+    test_db.close()
+    assert response.json()['result'] is None
+
+
+def test_remove_wrong_like():
+    response = client.post('/api',
+                           json=get_json_rpc_body('remove_like', {'video_id': 2}),
+                           headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    data = response.json()['error']
+    assert data['code'] == 3002
+    assert data['message'] == 'Video does not exist'
+
+
+def test_remove_same_like():
+    response = client.post('/api',
+                           json=get_json_rpc_body('remove_like', {'video_id': 1}),
+                           headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    data = response.json()['error']
+    assert data['code'] == 5001
+    assert data['message'] == 'Like does not exist'
