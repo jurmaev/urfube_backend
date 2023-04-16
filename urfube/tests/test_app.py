@@ -266,6 +266,19 @@ def test_add_comment():
     assert comment.user_id == 1
 
 
+def test_add_wrong_comment():
+    response = client.post('/api', json=get_json_rpc_body('add_comment', {
+        "comment": {
+            "content": "great video!",
+            "video_id": 2
+        }
+    }), headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    data = response.json()['error']
+    assert data['code'] == 3002
+    assert data['message'] == 'Video does not exist'
+
+
 def test_edit_comment():
     response = client.post('/api',
                            json=get_json_rpc_body('edit_comment', {'comment_id': 1, 'new_content': 'not cool!'}),
@@ -290,6 +303,21 @@ def test_edit_wrong_comment():
     assert data['message'] == 'Comment does not exist'
 
 
+def test_get_comments():
+    response = client.post('/api', json=get_json_rpc_body('get_comments', {'video_id': 1}))
+    assert response.status_code == 200
+    data = response.json()['result']
+    assert data == [{'content': 'not cool!', 'author': 'JohnDoe', 'id': 1}]
+
+
+def test_get_wrong_comments():
+    response = client.post('/api', json=get_json_rpc_body('get_comments', {'video_id': 2}))
+    assert response.status_code == 200
+    data = response.json()['error']
+    assert data['code'] == 3002
+    assert data['message'] == 'Video does not exist'
+
+
 def test_delete_comment():
     response = client.post('/api',
                            json=get_json_rpc_body('delete_comment', {'comment_id': 1}),
@@ -308,3 +336,24 @@ def test_delete_wrong_comment():
     data = response.json()['error']
     assert data['code'] == 4000
     assert data['message'] == 'Comment does not exist'
+
+
+def test_video_info():
+    response = client.post('/api', json=get_json_rpc_body('get_video_info', {'video_id': 1}))
+
+    assert response.status_code == 200
+    data = response.json()['result']
+    assert data == {'title': 'test_video',
+                    'description': 'test_description',
+                    'author': 'JohnDoe',
+                    'id': 1,
+                    'user_id': 1}
+
+
+def test_get_wrong_video_info():
+    response = client.post('/api', json=get_json_rpc_body('get_video_info', {'video_id': 2}))
+
+    assert response.status_code == 200
+    data = response.json()['error']
+    assert data['code'] == 3002
+    assert data['message'] == 'Video does not exist'

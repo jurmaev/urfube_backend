@@ -33,7 +33,7 @@ async def logging_middleware(ctx: jsonrpc.JsonRpcContext):
 
 
 app = jsonrpc.API()
-api = jsonrpc.Entrypoint('/api', middlewares=[logging_middleware], tags=['user', 'videos', 'history', 'comment'])
+api = jsonrpc.Entrypoint('/api', middlewares=[logging_middleware], tags=['user', 'video', 'history', 'comment'])
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=['*'],
                    allow_headers=['*'])
 
@@ -95,7 +95,7 @@ def refresh_tokens(refresh_token: str) -> schemas.Token:
 #     return crud.upload_video(video, user)
 
 
-@app.post('/upload_video/', tags=['videos'])
+@app.post('/upload_video/', tags=['video'])
 async def upload_video(user: Annotated[schemas.User, Depends(get_auth_user)], file: UploadFile, video_title: str,
                        video_description: str):
     if get_video_by_title(video_title) is not None:
@@ -106,7 +106,7 @@ async def upload_video(user: Annotated[schemas.User, Depends(get_auth_user)], fi
         raise VideoUploadFailedError
 
 
-@api.method(errors=[], dependencies=[Depends(get_db)], tags=['videos'])
+@api.method(errors=[], dependencies=[Depends(get_db)], tags=['video'])
 def get_videos() -> List[schemas.Video]:
     return crud.get_videos()
 
@@ -122,7 +122,7 @@ def get_user_history(user: Annotated[schemas.User, Depends(get_auth_user)]) -> L
     return crud.get_user_history(user)
 
 
-@api.method(errors=[LinkGenerateFailedError], dependencies=[Depends(get_db)], tags=['videos'])
+@api.method(errors=[LinkGenerateFailedError], dependencies=[Depends(get_db)], tags=['video'])
 def generate_link(video_id: int) -> str:
     if get_video_by_id(video_id) is None:
         raise VideoDoesNotExistError
@@ -132,23 +132,40 @@ def generate_link(video_id: int) -> str:
     return link
 
 
-@api.method(errors=[], dependencies=[Depends(get_db)], tags=['comment'])
+@api.method(errors=[VideoDoesNotExistError], dependencies=[Depends(get_db)], tags=['comment'])
 def add_comment(user: Annotated[schemas.User, Depends(get_auth_user)], comment: schemas.CommentUpload):
+    if get_video_by_id(comment.video_id) is None:
+        raise VideoDoesNotExistError
     crud.add_comment(comment.content, comment.video_id, user)
 
 
-@api.method(errors=[], dependencies=[Depends(get_db)], tags=['comment'])
+@api.method(errors=[CommentDoesNotExistError], dependencies=[Depends(get_db)], tags=['comment'])
 def delete_comment(user: Annotated[schemas.User, Depends(get_auth_user)], comment_id: int):
     if get_comment_by_id(comment_id) is None:
         raise CommentDoesNotExistError
     crud.delete_comment(comment_id)
 
 
-@api.method(errors=[], dependencies=[Depends(get_db)], tags=['comment'])
+@api.method(errors=[CommentDoesNotExistError], dependencies=[Depends(get_db)], tags=['comment'])
 def edit_comment(user: Annotated[schemas.User, Depends(get_auth_user)], comment_id: int, new_content: str):
     if get_comment_by_id(comment_id) is None:
         raise CommentDoesNotExistError
     crud.edit_comment(comment_id, new_content)
+
+
+@api.method(errors=[VideoDoesNotExistError], dependencies=[Depends(get_db)], tags=['comment'])
+def get_comments(video_id: int) -> List[schemas.VideoComment]:
+    if get_video_by_id(video_id) is None:
+        raise VideoDoesNotExistError
+    return crud.get_comments(video_id)
+
+
+@api.method(errors=[VideoDoesNotExistError], dependencies=[Depends(get_db)], tags=['video'])
+def get_video_info(video_id: int) -> schemas.Video:
+    db_video = get_video_by_id(video_id)
+    if db_video is None:
+        raise VideoDoesNotExistError
+    return db_video
 
 
 app.bind_entrypoint(api)

@@ -48,7 +48,6 @@ class VideoUpload(BaseModel):
 
 class Video(VideoUpload):
     id: int
-    # link: str
     author: str
     user_id: int
 
@@ -70,6 +69,12 @@ class History(BaseModel):
 class CommentUpload(BaseModel):
     content: str
     video_id: int
+
+
+class VideoComment(BaseModel):
+    content: str
+    author: str
+    id: int
 
 
 class Comment(CommentUpload):

@@ -16,14 +16,12 @@ class User(BaseModel):
 class Video(BaseModel):
     title = CharField()
     description = CharField()
-    # link = CharField()
     author = CharField()
     user = ForeignKeyField(User, backref='videos')
 
 
 class History(BaseModel):
     video_id = IntegerField()
-    # url = CharField()
     timestamp = IntegerField()
     date_visited = DateTimeField()
     user = ForeignKeyField(User, backref='history')

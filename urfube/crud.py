@@ -68,3 +68,8 @@ def get_comment_by_id(comment_id: int):
 
 def edit_comment(comment_id: int, new_content: str):
     models.Comment.update(content=new_content).where(models.Comment.id == comment_id).execute()
+
+
+def get_comments(video_id: int):
+    return [{'content': comment.content, 'author': comment.user.username, 'id': comment.id} for comment in
+            list(models.Video.get_by_id(video_id).comments)]
