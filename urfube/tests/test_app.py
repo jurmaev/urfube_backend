@@ -388,6 +388,40 @@ def test_post_same_like():
     assert data['message'] == 'Like already exists'
 
 
+def test_get_likes():
+    response = client.post('/api',
+                           json=get_json_rpc_body('get_likes', {'video_id': 1}))
+    assert response.status_code == 200
+    assert response.json()['result'] == 1
+
+
+def test_get_wrong_likes():
+    response = client.post('/api',
+                           json=get_json_rpc_body('get_likes', {'video_id': 2}))
+    assert response.status_code == 200
+    data = response.json()['error']
+    assert data['code'] == 3002
+    assert data['message'] == 'Video does not exist'
+
+
+def test_get_like():
+    response = client.post('/api',
+                           json=get_json_rpc_body('get_like', {'video_id': 1}),
+                           headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    assert response.json()['result'] is True
+
+
+def test_get_wrong_like():
+    response = client.post('/api',
+                           json=get_json_rpc_body('get_like', {'video_id': 2}),
+                           headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    assert response.status_code == 200
+    data = response.json()['error']
+    assert data['code'] == 3002
+    assert data['message'] == 'Video does not exist'
+
+
 def test_remove_like():
     response = client.post('/api',
                            json=get_json_rpc_body('remove_like', {'video_id': 1}),

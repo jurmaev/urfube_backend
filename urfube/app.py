@@ -84,18 +84,7 @@ def refresh_tokens(refresh_token: str) -> schemas.Token:
     }
 
 
-# @api.method(errors=[VideoAlreadyExistsError], dependencies=[Depends(get_db)])
-# def upload_video(user: Annotated[schemas.User, Depends(get_auth_user)], video: schemas.VideoUpload) -> schemas.Video:
-#     db_video = crud.get_video_by_title(video.title)
-#     if db_video:
-#         raise VideoAlreadyExistsError
-#     # upload_result = upload_file(video_file.filename, 'jurmaev', f'{user.username}/{video_file.filename}')
-#     # if not upload_result:
-#     #     raise VideoUploadFailedError
-#     return crud.upload_video(video, user)
-
-
-@app.post('/upload_video/', tags=['video'])
+@app.post('/upload_video/', tags=['video'], dependencies=[Depends(get_db)])
 async def upload_video(user: Annotated[schemas.User, Depends(get_auth_user)], file: UploadFile, video_title: str,
                        video_description: str):
     if get_video_by_title(video_title) is not None:
@@ -172,7 +161,7 @@ def get_video_info(video_id: int) -> schemas.Video:
 def post_like(user: Annotated[schemas.User, Depends(get_auth_user)], video_id: int):
     if get_video_by_id(video_id) is None:
         raise VideoDoesNotExistError
-    if user_liked_video(user, video_id):
+    if user_liked_video(user, video_id) is not None:
         raise LikeAlreadyExistsError
     add_like(user, video_id)
 
@@ -181,9 +170,23 @@ def post_like(user: Annotated[schemas.User, Depends(get_auth_user)], video_id: i
 def remove_like(user: Annotated[schemas.User, Depends(get_auth_user)], video_id: int):
     if get_video_by_id(video_id) is None:
         raise VideoDoesNotExistError
-    if not user_liked_video(user, video_id):
+    if user_liked_video(user, video_id) is not None:
         raise LikeDoesNotExistError
     crud.remove_like(user, video_id)
+
+
+@api.method(errors=[LikeDoesNotExistError, VideoDoesNotExistError], dependencies=[Depends(get_db)], tags=['like'])
+def get_like(user: Annotated[schemas.User, Depends(get_auth_user)], video_id: int) -> bool:
+    if get_video_by_id(video_id) is None:
+        raise VideoDoesNotExistError
+    return user_liked_video(user, video_id) is not None
+
+
+@api.method(errors=[VideoDoesNotExistError], dependencies=[Depends(get_db)], tags=['like'])
+def get_likes(video_id: int) -> int:
+    if get_video_by_id(video_id) is None:
+        raise VideoDoesNotExistError
+    return crud.get_likes(video_id)
 
 
 app.bind_entrypoint(api)

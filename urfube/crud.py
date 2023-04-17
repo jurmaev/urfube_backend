@@ -76,7 +76,12 @@ def get_comments(video_id: int):
 
 
 def user_liked_video(user: schemas.User, video_id: int):
-    return len(models.Like.select(models.Like.video_id == video_id, models.Like.user_id == user)) == 1
+    return models.Like.get_or_none(models.Like.video_id == video_id, models.Like.user_id == user)
+    # return len(models.Like.select(models.Like.video_id == video_id, models.Like.user_id == user)) == 1
+
+
+def get_likes(video_id: int):
+    return len(list(models.Video.get_by_id(video_id).likes))
 
 
 def add_like(user: schemas.User, video_id: int):

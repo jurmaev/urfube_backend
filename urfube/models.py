@@ -35,4 +35,4 @@ class Comment(BaseModel):
 
 class Like(BaseModel):
     user = ForeignKeyField(User, backref='likes')
-    video = ForeignKeyField(User, backref='likes')
+    video = ForeignKeyField(Video, backref='likes')
