@@ -107,7 +107,7 @@ def add_or_update_history(user: Annotated[schemas.User, Depends(get_auth_user)],
 
 
 @api.method(errors=[], dependencies=[Depends(get_db)], tags=['history'])
-def get_user_history(user: Annotated[schemas.User, Depends(get_auth_user)]) -> List[schemas.History]:
+def get_user_history(user: Annotated[schemas.User, Depends(get_auth_user)]) -> List[schemas.HistoryReturn]:
     return crud.get_user_history(user)
 
 
@@ -170,7 +170,7 @@ def post_like(user: Annotated[schemas.User, Depends(get_auth_user)], video_id: i
 def remove_like(user: Annotated[schemas.User, Depends(get_auth_user)], video_id: int):
     if get_video_by_id(video_id) is None:
         raise VideoDoesNotExistError
-    if user_liked_video(user, video_id) is not None:
+    if user_liked_video(user, video_id) is None:
         raise LikeDoesNotExistError
     crud.remove_like(user, video_id)
 

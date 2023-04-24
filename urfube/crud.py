@@ -35,7 +35,12 @@ def add_or_update_history(user: schemas.User, video: schemas.History):
 
 
 def get_user_history(user: schemas.User):
-    return list(get_user(user.id).history)
+    user_history = []
+    for history in get_user(user.id).history:
+        video = get_video_by_id(history.video_id)
+        user_history.append({'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video.title, 'author': video.author,
+         'description': video.description})
+    return user_history
 
 
 def get_history_by_id(history_id: int):

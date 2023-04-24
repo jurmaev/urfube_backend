@@ -58,12 +58,20 @@ class Video(VideoUpload):
 
 class History(BaseModel):
     video_id: int
-    timestamp: int
-    date_visited: datetime.datetime
+    timestamp: float
 
     class Config:
         orm_mode = True
         getter_dict = PeeweeGetterDict
+
+
+class HistoryReturn(BaseModel):
+    title: str
+    description: str
+    author: str
+    video_id: int
+    timestamp: float
+    # date_visited: datetime.datetime
 
 
 class CommentUpload(BaseModel):

@@ -189,7 +189,7 @@ def test_add_history():
         'video': {
             'video_id': 1,
             'timestamp': 14,
-            'date_visited': '2023-03-29T14:58:14.559Z'
+            # 'date_visited': '2023-03-29T14:58:14.559Z'
         }
     }), headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
     assert response.status_code == 200
@@ -197,19 +197,23 @@ def test_add_history():
     test_db.close()
     assert history.video_id == 1
     assert history.timestamp == 14
-    assert history.date_visited == '2023-03-29 14:58:14.559000+00:00'
+    # assert history.date_visited == '2023-03-29 14:58:14.559000+00:00'
 
 
 def test_get_user_history():
     response = client.post('/api', json=get_json_rpc_body('get_user_history', {})
                            , headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
     assert response.status_code == 200
+    print(response.json())
     data = response.json()['result']
     assert data == [
         {
             'video_id': 1,
             'timestamp': 14,
-            'date_visited': '2023-03-29T14:58:14.559000+00:00'
+            'title': 'test_video',
+            'description': 'test_description',
+            'author': 'JohnDoe'
+            # 'date_visited': '2023-03-29T14:58:14.559000+00:00'
         }
     ]
 
@@ -229,7 +233,10 @@ def test_update_user_history():
     assert data == [{
         'video_id': 1,
         'timestamp': 20,
-        'date_visited': '2023-03-29T14:58:14.559000+00:00'
+        'title': 'test_video',
+        'description': 'test_description',
+        'author': 'JohnDoe'
+        # 'date_visited': '2023-03-29T14:58:14.559000+00:00'
     }]
 
 
@@ -363,7 +370,7 @@ def test_post_like():
                            json=get_json_rpc_body('post_like', {'video_id': 1}),
                            headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
     assert response.status_code == 200
-    assert user_liked_video(1, 1) is True
+    assert user_liked_video(1, 1) is not None
     test_db.close()
     assert response.json()['result'] is None
 
@@ -427,7 +434,7 @@ def test_remove_like():
                            json=get_json_rpc_body('remove_like', {'video_id': 1}),
                            headers={'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
     assert response.status_code == 200
-    assert user_liked_video(1, 1) is False
+    assert user_liked_video(1, 1) is None
     test_db.close()
     assert response.json()['result'] is None
 

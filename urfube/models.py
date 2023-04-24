@@ -22,8 +22,8 @@ class Video(BaseModel):
 
 class History(BaseModel):
     video_id = IntegerField()
-    timestamp = IntegerField()
-    date_visited = DateTimeField()
+    timestamp = FloatField()
+    # date_visited = DateTimeField()
     user = ForeignKeyField(User, backref='history')
 
 
