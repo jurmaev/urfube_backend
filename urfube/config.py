@@ -1,7 +1,7 @@
+import os
 import pathlib
 
 from pydantic import BaseSettings
-import os
 
 
 class Settings(BaseSettings):

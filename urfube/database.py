@@ -1,6 +1,8 @@
 from contextvars import ContextVar
+
 import peewee
-from .config import settings
+
+from urfube.config import settings
 
 db_state_default = {'closed': None, 'conn': None, 'ctx': None, 'transactions': None}
 db_state = ContextVar('db_state', default=db_state_default.copy())

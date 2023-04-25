@@ -1,7 +1,9 @@
 import datetime
-from urfube.utils import get_hashed_password
-from urfube import models, schemas
+
 from peewee import *
+
+from urfube import models, schemas
+from urfube.utils import get_hashed_password
 
 
 def get_user(user_id: int):

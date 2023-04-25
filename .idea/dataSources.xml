@@ -2,10 +2,10 @@
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
     <data-source source="LOCAL" name="urfube" uuid="e385113c-bcc5-4115-a94f-481f152ed27d">
-      <driver-ref>sqlite.xerial</driver-ref>
+      <driver-ref>1739159c-2369-4a6d-988b-13f7c21c0764</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:C:\Users\jurmaev\PycharmProjects\fastapi_urfube\urfube\urfube.db</jdbc-url>
+      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/urfube/urfube.db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
       <libraries>
         <library>
