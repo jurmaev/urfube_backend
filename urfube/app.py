@@ -195,6 +195,8 @@ def remove_like(user: Annotated[schemas.User, Depends(dependencies.get_auth_user
 def get_like(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)], video_id: int) -> bool:
     if crud.get_video_by_id(video_id) is None:
         raise errors.VideoDoesNotExistError
+    if crud.user_liked_video(user, video_id) is None:
+        raise errors.LikeDoesNotExistError
     return crud.user_liked_video(user, video_id) is not None
 
 
@@ -203,6 +205,11 @@ def get_likes(video_id: int) -> int:
     if crud.get_video_by_id(video_id) is None:
         raise errors.VideoDoesNotExistError
     return crud.get_likes(video_id)
+
+
+@api.method(errors=[], dependencies=[Depends(dependencies.get_db)], tags=['like'])
+def get_liked_videos(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)]) -> List[schemas.HistoryReturn]:
+    return crud.get_liked_videos(user)
 
 
 app.bind_entrypoint(api)

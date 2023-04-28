@@ -29,7 +29,7 @@ def get_videos():
 
 def add_or_update_history(user: schemas.User, video: schemas.History):
     db_video = models.History.get_or_none(models.History.user == user, models.History.video_id == video.video_id)
-    if db_video:
+    if db_video is not None:
         db_video.update(**video.dict(), user_id=user.id).execute()
     else:
         models.History.create(**video.dict(),
@@ -40,13 +40,14 @@ def get_user_history(user: schemas.User):
     user_history = []
     for history in get_user(user.id).history:
         video = get_video_by_id(history.video_id)
-        user_history.append({'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video.title, 'author': video.author,
-         'description': video.description})
+        user_history.append(
+            {'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video.title, 'author': video.author,
+             'description': video.description})
     return user_history
 
 
-def get_history_by_id(history_id: int):
-    return models.History.get_or_none(models.History.id == history_id)
+def get_history_by_id(video_id: int):
+    return models.History.get_or_none(models.History.id == video_id)
 
 
 def upload_video(video: schemas.VideoUpload, user: schemas.User):
@@ -97,3 +98,14 @@ def add_like(user: schemas.User, video_id: int):
 
 def remove_like(user: schemas.User, video_id: int):
     models.Like.delete().where(models.Like.user_id == user, models.Like.video_id == video_id).execute()
+
+
+def get_liked_videos(user: schemas.User):
+    liked_videos = []
+    for video in user.likes:
+        history = get_history_by_id(video.video_id)
+        video_info = get_video_by_id(history.video_id)
+        liked_videos.append({'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video_info.title,
+                             'author': video_info.author,
+                             'description': video_info.description})
+    return liked_videos
