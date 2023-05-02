@@ -435,6 +435,20 @@ def test_get_wrong_like():
     assert data['message'] == errors.VideoDoesNotExistError.MESSAGE
 
 
+def test_get_liked_videos():
+    response = client.post(url,
+                           json=get_json_rpc_body('get_liked_videos', {}),
+                           headers={
+                               'User-Auth-Token': utils.create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+    data = response.json()['result'][0]
+    assert response.status_code == 200
+    assert data['title'] == 'test_video'
+    assert data['description'] == 'test_description'
+    assert data['author'] == 'JohnDoe'
+    assert data['video_id'] == 1
+    assert data['timestamp'] == 20
+
+
 def test_remove_like():
     response = client.post(url,
                            json=get_json_rpc_body('remove_like', {'video_id': 1}),
