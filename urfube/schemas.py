@@ -76,6 +76,7 @@ class HistoryReturn(BaseModel):
     author: str
     video_id: int
     timestamp: float
+    image_link: str
     # date_visited: datetime.datetime
 
 

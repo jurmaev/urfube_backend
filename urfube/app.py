@@ -118,7 +118,7 @@ async def add_or_update_history(user: Annotated[schemas.User, Depends(dependenci
 @api.method(errors=[], dependencies=[Depends(dependencies.get_db)], tags=['history'])
 async def get_user_history(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)]) -> List[
     schemas.HistoryReturn]:
-    return crud.get_user_history(user)
+    return await crud.get_user_history(user)
 
 
 @api.method(errors=[errors.LinkGenerateFailedError], dependencies=[Depends(dependencies.get_db)], tags=['video'])
@@ -212,7 +212,7 @@ async def get_likes(video_id: int) -> int:
 @api.method(errors=[], dependencies=[Depends(dependencies.get_db)], tags=['like'])
 async def get_liked_videos(user: Annotated[schemas.User,
 Depends(dependencies.get_auth_user)]) -> List[schemas.HistoryReturn]:
-    return crud.get_liked_videos(user)
+    return await crud.get_liked_videos(user)
 
 
 app.bind_entrypoint(api)

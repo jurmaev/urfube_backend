@@ -43,13 +43,14 @@ def add_or_update_history(user: schemas.User, video: schemas.History):
                               user_id=user.id)
 
 
-def get_user_history(user: schemas.User):
+async def get_user_history(user: schemas.User):
     user_history = []
     for history in get_user(user.id).history:
         video = get_video_by_id(history.video_id)
         user_history.append(
             {'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video.title, 'author': video.author,
-             'description': video.description})
+             'description': video.description,
+             'image_link': await create_presigned_url('jurmaev', f'images/{history.video_id}.jpg')})
     return user_history
 
 
@@ -107,12 +108,13 @@ def remove_like(user: schemas.User, video_id: int):
     models.Like.delete().where(models.Like.user_id == user, models.Like.video_id == video_id).execute()
 
 
-def get_liked_videos(user: schemas.User):
+async def get_liked_videos(user: schemas.User):
     liked_videos = []
     for video in user.likes:
         history = get_history_by_id(video.video_id)
         video_info = get_video_by_id(history.video_id)
         liked_videos.append({'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video_info.title,
                              'author': video_info.author,
-                             'description': video_info.description})
+                             'description': video_info.description,
+                             'image_link': await create_presigned_url('jurmaev', f'images/{history.video_id}.jpg')})
     return liked_videos
