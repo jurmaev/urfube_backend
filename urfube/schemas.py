@@ -57,6 +57,10 @@ class Video(VideoUpload):
         getter_dict = PeeweeGetterDict
 
 
+class VideoReturn(Video):
+    image_link: str
+
+
 class History(BaseModel):
     video_id: int
     timestamp: float

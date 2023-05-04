@@ -1,9 +1,9 @@
 import datetime
 
 from peewee import *
-
+from playhouse.shortcuts import model_to_dict
 from urfube import models, schemas
-from urfube.utils import get_hashed_password
+from urfube.utils import get_hashed_password, create_presigned_url
 
 
 def get_user(user_id: int):
@@ -23,8 +23,15 @@ def get_video_by_title(title: str):
     return models.Video.get_or_none(models.Video.title == title.lower())
 
 
-def get_videos():
-    return list(models.Video.select())
+async def get_videos():
+    videos = []
+    for video in models.Video.select():
+        video_dict = {'title': video.title, 'description': video.description, 'id': video.id, 'author': video.author,
+                      'user_id': video.user.id}
+        video_dict['image_link'] = await create_presigned_url('jurmaev', f'images/{video_dict["id"]}.jpg')
+        videos.append(video_dict)
+    print(videos)
+    return videos
 
 
 def add_or_update_history(user: schemas.User, video: schemas.History):

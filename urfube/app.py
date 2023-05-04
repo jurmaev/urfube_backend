@@ -91,26 +91,27 @@ async def refresh_tokens(refresh_token: str) -> schemas.Token:
 
 
 @app.post('/upload_video/', tags=['video'], dependencies=[Depends(dependencies.get_db)])
-async def upload_video(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)], upload_file: UploadFile,
-                 video_title: str,
-                 video_description: str):
+async def upload_video(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)], video_file: UploadFile, image_file: UploadFile,
+                       video_title: str,
+                       video_description: str):
     if crud.get_video_by_title(video_title) is not None:
         raise errors.VideoAlreadyExistsError
     db_video = crud.upload_video(schemas.VideoUpload(title=video_title, description=video_description),
                                  user)
-    upload_result = await upload_fileobj(upload_file.file, 'jurmaev', f'{db_video.id}.mp4', upload_file.size)
-    if not upload_result:
+    video_upload = await upload_fileobj(video_file.file, 'jurmaev', f'videos/{db_video.id}.mp4', video_file.size)
+    image_upload = await upload_fileobj(image_file.file, 'jurmaev', f'images/{db_video.id}.jpg', image_file.size)
+    if not video_upload or not image_upload:
         raise errors.VideoUploadFailedError
 
 
 @api.method(errors=[], dependencies=[Depends(dependencies.get_db)], tags=['video'])
-async def get_videos() -> List[schemas.Video]:
-    return crud.get_videos()
+async def get_videos() -> List[schemas.VideoReturn]:
+    return await crud.get_videos()
 
 
 @api.method(errors=[], dependencies=[Depends(dependencies.get_db)], tags=['history'])
 async def add_or_update_history(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)],
-                          video: schemas.History):
+                                video: schemas.History):
     crud.add_or_update_history(user, video)
 
 
@@ -121,10 +122,10 @@ async def get_user_history(user: Annotated[schemas.User, Depends(dependencies.ge
 
 
 @api.method(errors=[errors.LinkGenerateFailedError], dependencies=[Depends(dependencies.get_db)], tags=['video'])
-async def generate_link(video_id: int) -> str:
+async def generate_video_link(video_id: int) -> str:
     if crud.get_video_by_id(video_id) is None:
         raise errors.VideoDoesNotExistError
-    link = await create_presigned_url('jurmaev', f'{video_id}.mp4')
+    link = await create_presigned_url('jurmaev', f'videos/{video_id}.mp4')
     if link is None:
         raise errors.LinkGenerateFailedError
     return link
@@ -132,7 +133,7 @@ async def generate_link(video_id: int) -> str:
 
 @api.method(errors=[errors.VideoDoesNotExistError], dependencies=[Depends(dependencies.get_db)], tags=['comment'])
 async def add_comment(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)],
-                comment: schemas.CommentUpload):
+                      comment: schemas.CommentUpload):
     if crud.get_video_by_id(comment.video_id) is None:
         raise errors.VideoDoesNotExistError
     crud.add_comment(comment.content, comment.video_id, user)
@@ -147,7 +148,7 @@ async def delete_comment(user: Annotated[schemas.User, Depends(dependencies.get_
 
 @api.method(errors=[errors.CommentDoesNotExistError], dependencies=[Depends(dependencies.get_db)], tags=['comment'])
 async def edit_comment(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)], comment_id: int,
-                 new_content: str):
+                       new_content: str):
     if crud.get_comment_by_id(comment_id) is None:
         raise errors.CommentDoesNotExistError
     crud.edit_comment(comment_id, new_content)
