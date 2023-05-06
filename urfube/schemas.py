@@ -64,6 +64,7 @@ class VideoReturn(Video):
 class History(BaseModel):
     video_id: int
     timestamp: float
+    length: int
 
     class Config:
         orm_mode = True
@@ -76,6 +77,7 @@ class HistoryReturn(BaseModel):
     author: str
     video_id: int
     timestamp: float
+    progress: float
     image_link: str
     # date_visited: datetime.datetime
 

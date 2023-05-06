@@ -1,4 +1,5 @@
 import peewee
+import pytest
 from fastapi.testclient import TestClient
 
 from urfube import app, errors, utils, dependencies
@@ -144,30 +145,22 @@ def test_refresh_tokens():
 
 
 def test_upload_video():
-    with open('urfube/tests/test_videos/test.mp4', 'rb') as upload_file:
-        response = client.post('/upload_video/?video_title=test_video&video_description=test_description',
-                               files={'upload_file': ('test.mp4', upload_file, 'video/mp4')}, headers={
-                'User-Auth-Token': utils.create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
-        assert response.status_code == 200
-        video = get_video_by_title('test_video')
-        test_db.close()
-        assert video.title == 'test_video'
-        assert video.description == 'test_description'
-        assert video.author == 'JohnDoe'
+    with open('urfube/tests/test_videos/test.mp4', 'rb') as video_file:
+        with open('urfube/tests/test_videos/1.jpg', 'rb') as image_file:
+            response = client.post('/upload_video/?video_title=test_video&video_description=test_description',
+                                   files={'video_file': ('test.mp4', video_file, 'video/mp4'),
+                                          'image_file': ('1.jpg', image_file, 'image/jpg')}, headers={
+                    'User-Auth-Token': utils.create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
+            assert response.status_code == 200
+            video = get_video_by_title('test_video')
+            test_db.close()
+            assert video.title == 'test_video'
+            assert video.description == 'test_description'
+            assert video.author == 'JohnDoe'
 
 
-# def test_upload_same_video():
-#     with open('urfube/tests/test_videos/test.mp4', 'rb') as file:
-#         response = client.post('/upload_video/?video_title=test_video&video_description=test_description',
-#                                files={'file': ('test.mp4', file, 'video/mp4')}, headers={
-#                 'User-Auth-Token': create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
-#         assert response.status_code == 200
-#         data = response.json()['error']
-#         assert data['code'] == 3001
-#         assert data['message'] == 'Video already exists'
-
-
-def test_get_videos():
+@pytest.mark.anyio
+async def test_get_videos():
     response = client.post(url, json=get_json_rpc_body('get_videos', {}))
 
     assert response.status_code == 200
@@ -176,7 +169,8 @@ def test_get_videos():
                      'description': 'test_description',
                      'author': 'JohnDoe',
                      'id': 1,
-                     'user_id': 1}]
+                     'user_id': 1,
+                     'image_link': await create_presigned_url('jurmaev', 'images/1.jpg')}]
 
 
 def test_add_history():
@@ -184,6 +178,7 @@ def test_add_history():
         'video': {
             'video_id': 1,
             'timestamp': 14,
+            'length': 100
             # 'date_visited': '2023-03-29T14:58:14.559Z'
         }
     }), headers={'User-Auth-Token': utils.create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
@@ -192,34 +187,39 @@ def test_add_history():
     test_db.close()
     assert history.video_id == 1
     assert history.timestamp == 14
+    assert history.length == 100
     # assert history.date_visited == '2023-03-29 14:58:14.559000+00:00'
 
 
-def test_get_user_history():
+@pytest.mark.anyio
+async def test_get_user_history():
     response = client.post(url, json=get_json_rpc_body('get_user_history', {})
                            , headers={
             'User-Auth-Token': utils.create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
     assert response.status_code == 200
-    print(response.json())
     data = response.json()['result']
     assert data == [
         {
-            'video_id': 1,
-            'timestamp': 14,
             'title': 'test_video',
             'description': 'test_description',
-            'author': 'JohnDoe'
+            'author': 'JohnDoe',
+            'video_id': 1,
+            'timestamp': 14,
+            'progress': 0.14,
+            'image_link': await create_presigned_url('jurmaev', 'images/1.jpg')
             # 'date_visited': '2023-03-29T14:58:14.559000+00:00'
         }
     ]
 
 
-def test_update_user_history():
+@pytest.mark.anyio
+async def test_update_user_history():
     client.post(url, json=get_json_rpc_body('add_or_update_history', {
         'video': {
             'video_id': 1,
             'timestamp': 20,
-            'date_visited': '2023-03-29T14:58:14.559Z'
+            'length': 100
+            # 'date_visited': '2023-03-29T14:58:14.559Z'
         }, 'video_id': 1
     }), headers={'User-Auth-Token': utils.create_access_token({'sub': 'JohnDoe', 'scopes': ['admin']})})
     response = client.post(url, json=get_json_rpc_body('get_user_history', {})
@@ -232,7 +232,9 @@ def test_update_user_history():
         'timestamp': 20,
         'title': 'test_video',
         'description': 'test_description',
-        'author': 'JohnDoe'
+        'author': 'JohnDoe',
+        'progress': 0.2,
+        'image_link': await create_presigned_url('jurmaev', 'images/1.jpg')
         # 'date_visited': '2023-03-29T14:58:14.559000+00:00'
     }]
 

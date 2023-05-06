@@ -50,7 +50,8 @@ async def get_user_history(user: schemas.User):
         user_history.append(
             {'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video.title, 'author': video.author,
              'description': video.description,
-             'image_link': await create_presigned_url('jurmaev', f'images/{history.video_id}.jpg')})
+             'image_link': await create_presigned_url('jurmaev', f'images/{history.video_id}.jpg'),
+             'progress': round(history.timestamp / history.length, 2)})
     return user_history
 
 
@@ -116,5 +117,6 @@ async def get_liked_videos(user: schemas.User):
         liked_videos.append({'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video_info.title,
                              'author': video_info.author,
                              'description': video_info.description,
-                             'image_link': await create_presigned_url('jurmaev', f'images/{history.video_id}.jpg')})
+                             'image_link': await create_presigned_url('jurmaev', f'images/{history.video_id}.jpg'),
+                             'progress': round(history.timestamp / history.length, 2)})
     return liked_videos
