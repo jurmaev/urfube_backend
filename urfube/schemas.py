@@ -111,3 +111,12 @@ class Like(BaseModel):
     class Config:
         orm_mode = True
         getter_dict = PeeweeGetterDict
+
+
+class Subscription(BaseModel):
+    subscriber: int
+    channel: int
+
+    class Config:
+        orm_mode = True
+        getter_dict = PeeweeGetterDict

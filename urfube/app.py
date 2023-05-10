@@ -17,7 +17,7 @@ from urfube.utils import (create_access_token, create_presigned_url,
 origins = ['*']
 database.db.connect()
 database.db.create_tables(
-    [models.User, models.Video, models.History, models.Comment, models.Like]
+    [models.User, models.Video, models.History, models.Comment, models.Like, models.Subscription]
 )
 database.db.close()
 
@@ -36,7 +36,7 @@ async def logging_middleware(ctx: jsonrpc.JsonRpcContext):
 
 app = jsonrpc.API()
 api = jsonrpc.Entrypoint(
-    '/api', middlewares=[logging_middleware], tags=['user', 'video', 'history', 'comment', 'like', 'views']
+    '/api', middlewares=[logging_middleware], tags=['user', 'video', 'history', 'comment', 'like', 'subscriptions']
 )
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=['*'],
                    allow_headers=['*'])
@@ -91,7 +91,8 @@ async def refresh_tokens(refresh_token: str) -> schemas.Token:
 
 
 @app.post('/upload_video/', tags=['video'], dependencies=[Depends(dependencies.get_db)])
-async def upload_video(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)], video_file: UploadFile, image_file: UploadFile,
+async def upload_video(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)], video_file: UploadFile,
+                       image_file: UploadFile,
                        video_title: str,
                        video_description: str):
     if crud.get_video_by_title(video_title) is not None:
@@ -215,12 +216,44 @@ Depends(dependencies.get_auth_user)]) -> List[schemas.HistoryReturn]:
     return await crud.get_liked_videos(user)
 
 
-@api.method(errors=[errors.VideoDoesNotExistError], dependencies=[Depends(dependencies.get_db)], tags=['views'])
+@api.method(errors=[errors.VideoDoesNotExistError], dependencies=[Depends(dependencies.get_db)], tags=['video'])
 async def post_view(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)], video_id: int):
     db_video = crud.get_video_by_id(video_id)
     if db_video is None:
         raise errors.VideoDoesNotExistError
     crud.add_view(video_id)
+
+
+@api.method(errors=[errors.UserNotFoundError], dependencies=[Depends(dependencies.get_db)], tags=['subscriptions'])
+async def subscribe(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)], channel: str):
+    db_channel = crud.get_user_by_username(channel)
+    if db_channel is None:
+        raise errors.UserNotFoundError
+    crud.subscribe(user.id, db_channel.id)
+
+
+@api.method(errors=[errors.UserNotFoundError], dependencies=[Depends(dependencies.get_db)], tags=['subscriptions'])
+async def unsubscribe(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)], channel: str):
+    db_channel = crud.get_user_by_username(channel)
+    if db_channel is None:
+        raise errors.UserNotFoundError
+    crud.unsubscribe(user.id, db_channel)
+
+
+@api.method(errors=[errors.UserNotFoundError], dependencies=[Depends(dependencies.get_db)], tags=['subscriptions'])
+async def get_subscribers(channel: str) -> int:
+    channel = crud.get_user_by_username(channel)
+    if channel is None:
+        raise errors.UserNotFoundError
+    return crud.get_subscribers(channel)
+
+
+@api.method(errors=[errors.UserNotFoundError], dependencies=[Depends(dependencies.get_db)], tags=['subscriptions'])
+async def is_subscribed(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)], channel: str) -> bool:
+    db_channel = crud.get_user_by_username(channel)
+    if db_channel is None:
+        raise errors.UserNotFoundError
+    return crud.is_subscribed(user.id, db_channel.id)
 
 
 app.bind_entrypoint(api)

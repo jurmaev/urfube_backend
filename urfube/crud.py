@@ -127,3 +127,21 @@ async def get_liked_videos(user: schemas.User):
 
 def add_view(video_id: int):
     models.Video.update(views=models.Video.views + 1).where(models.Video.id == video_id).execute()
+
+
+def subscribe(subscriber_id: int, channel_id: int):
+    models.Subscription.create(subscriber=subscriber_id, channel=channel_id)
+
+
+def unsubscribe(subscriber_id: int, channel_id: int):
+    models.Subscription.delete().where(models.Subscription.subscriber == subscriber_id,
+                                       models.Subscription.channel == channel_id).execute()
+
+
+def get_subscribers(channel):
+    return len(list(channel.subscriptions))
+
+
+def is_subscribed(user_id: int, channel_id: int):
+    return models.Subscription.get_or_none(models.Subscription.subscriber == user_id,
+                                           models.Subscription.channel == channel_id) is not None

@@ -1,12 +1,6 @@
 import fastapi_jsonrpc as jsonrpc
 from pydantic import BaseModel
 
-# class MyError(jsonrpc.BaseError):
-#     CODE = 5000
-#     MESSAGE = 'My error'
-#
-#     class DataModel(BaseModel):
-#         details: str
 
 class AuthError(jsonrpc.BaseError):
     CODE = 7000
