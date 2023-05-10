@@ -36,7 +36,7 @@ async def logging_middleware(ctx: jsonrpc.JsonRpcContext):
 
 app = jsonrpc.API()
 api = jsonrpc.Entrypoint(
-    '/api', middlewares=[logging_middleware], tags=['user', 'video', 'history', 'comment', 'like']
+    '/api', middlewares=[logging_middleware], tags=['user', 'video', 'history', 'comment', 'like', 'views']
 )
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=['*'],
                    allow_headers=['*'])
@@ -213,6 +213,14 @@ async def get_likes(video_id: int) -> int:
 async def get_liked_videos(user: Annotated[schemas.User,
 Depends(dependencies.get_auth_user)]) -> List[schemas.HistoryReturn]:
     return await crud.get_liked_videos(user)
+
+
+@api.method(errors=[errors.VideoDoesNotExistError], dependencies=[Depends(dependencies.get_db)], tags=['views'])
+async def post_view(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)], video_id: int):
+    db_video = crud.get_video_by_id(video_id)
+    if db_video is None:
+        raise errors.VideoDoesNotExistError
+    crud.add_view(video_id)
 
 
 app.bind_entrypoint(api)

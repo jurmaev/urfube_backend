@@ -27,7 +27,8 @@ async def get_videos():
     videos = []
     for video in models.Video.select():
         video_dict = {'title': video.title, 'description': video.description, 'id': video.id, 'author': video.author,
-                      'user_id': video.user.id}
+                      'user_id': video.user.id,
+                      'views': video.views}
         video_dict['image_link'] = await create_presigned_url('jurmaev', f'images/{video_dict["id"]}.jpg')
         videos.append(video_dict)
     print(videos)
@@ -51,7 +52,8 @@ async def get_user_history(user: schemas.User):
             {'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video.title, 'author': video.author,
              'description': video.description,
              'image_link': await create_presigned_url('jurmaev', f'images/{history.video_id}.jpg'),
-             'progress': round(history.timestamp / history.length, 2)})
+             'progress': round(history.timestamp / history.length, 2),
+             'views': video.views})
     return user_history
 
 
@@ -118,5 +120,10 @@ async def get_liked_videos(user: schemas.User):
                              'author': video_info.author,
                              'description': video_info.description,
                              'image_link': await create_presigned_url('jurmaev', f'images/{history.video_id}.jpg'),
-                             'progress': round(history.timestamp / history.length, 2)})
+                             'progress': round(history.timestamp / history.length, 2),
+                             'views': video_info.views})
     return liked_videos
+
+
+def add_view(video_id: int):
+    models.Video.update(views=models.Video.views + 1).where(models.Video.id == video_id).execute()

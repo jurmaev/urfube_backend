@@ -18,6 +18,7 @@ class Video(BaseModel):
     title = CharField()
     description = CharField()
     author = CharField()
+    views = IntegerField(default=0)
     user = ForeignKeyField(User, backref='videos')
 
 

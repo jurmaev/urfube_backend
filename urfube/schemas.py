@@ -51,6 +51,7 @@ class Video(VideoUpload):
     id: int
     author: str
     user_id: int
+    views: int
 
     class Config:
         orm_mode = True
@@ -79,6 +80,7 @@ class HistoryReturn(BaseModel):
     timestamp: float
     progress: float
     image_link: str
+    views: int
     # date_visited: datetime.datetime
 
 
