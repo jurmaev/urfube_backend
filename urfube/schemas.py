@@ -30,11 +30,7 @@ class UserLogin(BaseModel):
     password: str
 
 
-class UserCreate(UserLogin):
-    email: str
-
-
-class User(UserCreate):
+class User(UserLogin):
     id: int
 
     class Config:
@@ -59,9 +55,9 @@ class Video(VideoUpload):
         getter_dict = PeeweeGetterDict
 
 
-class VideoReturn(Video):
-    image_link: str
-    profile_link: str
+# class VideoReturn(Video):
+#     image_link: str
+#     profile_link: str
 
 
 class History(BaseModel):
@@ -74,11 +70,11 @@ class History(BaseModel):
         getter_dict = PeeweeGetterDict
 
 
-class HistoryReturn(BaseModel):
+class VideoReturn(BaseModel):
     title: str
     created: datetime.datetime
     author: str
-    video_id: int
+    id: int
     timestamp: float
     progress: float
     image_link: str
@@ -95,6 +91,8 @@ class VideoComment(BaseModel):
     content: str
     author: str
     id: int
+    created: datetime.datetime
+    profile_link: str
 
 
 class Comment(CommentUpload):

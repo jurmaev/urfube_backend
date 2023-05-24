@@ -10,7 +10,7 @@ class BaseModel(Model):
 
 class User(BaseModel):
     username = CharField(unique=True)
-    email = CharField()
+    # email = CharField()
     password = CharField()
 
 
@@ -48,6 +48,7 @@ class Subscription(BaseModel):
     channel = ForeignKeyField(User, backref='subscriptions')
 
     class Meta:
+        primary_key = CompositeKey('subscriber', 'channel')
         indexes = (
             (('subscriber', 'channel'), True),
         )

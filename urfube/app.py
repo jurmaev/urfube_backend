@@ -7,7 +7,7 @@ import fastapi_jsonrpc as jsonrpc
 from fastapi import Depends, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt
-
+from fastapi.responses import JSONResponse
 from urfube import (config, crud, database, dependencies, errors, models,
                     schemas)
 from urfube.utils import (create_access_token, create_presigned_url,
@@ -43,7 +43,7 @@ app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True
 
 
 @api.method(errors=[errors.UserExistsError], dependencies=[Depends(dependencies.get_db)], tags=['user'])
-async def signup(user: schemas.UserCreate):
+async def signup(user: schemas.UserLogin):
     db_user = crud.get_user_by_username(user.username)
     if db_user:
         raise errors.UserExistsError
@@ -96,13 +96,13 @@ async def upload_video(user: Annotated[schemas.User, Depends(dependencies.get_au
                        video_title: str,
                        video_description: str):
     if crud.get_video_by_title(video_title) is not None:
-        raise errors.VideoAlreadyExistsError
+        return JSONResponse(content='Video already exists!')
     db_video = crud.upload_video(schemas.VideoUpload(title=video_title, description=video_description),
                                  user)
     video_upload = await upload_fileobj(video_file.file, 'jurmaev', f'videos/{db_video.id}.mp4', video_file.size)
     image_upload = await upload_fileobj(image_file.file, 'jurmaev', f'images/{db_video.id}.jpg', image_file.size)
     if not video_upload or not image_upload:
-        raise errors.VideoUploadFailedError
+        return JSONResponse(content='Video upload failed!')
 
 
 @api.method(errors=[], dependencies=[Depends(dependencies.get_db)], tags=['video'])
@@ -118,7 +118,7 @@ async def add_or_update_history(user: Annotated[schemas.User, Depends(dependenci
 
 @api.method(errors=[], dependencies=[Depends(dependencies.get_db)], tags=['history'])
 async def get_user_history(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)]) -> List[
-    schemas.HistoryReturn]:
+    schemas.VideoReturn]:
     return await crud.get_user_history(user)
 
 
@@ -159,7 +159,7 @@ async def edit_comment(user: Annotated[schemas.User, Depends(dependencies.get_au
 async def get_comments(video_id: int) -> List[schemas.VideoComment]:
     if crud.get_video_by_id(video_id) is None:
         raise errors.VideoDoesNotExistError
-    return crud.get_comments(video_id)
+    return await crud.get_comments(video_id)
 
 
 @api.method(errors=[errors.VideoDoesNotExistError], dependencies=[Depends(dependencies.get_db)], tags=['video'])
@@ -212,7 +212,7 @@ async def get_likes(video_id: int) -> int:
 
 @api.method(errors=[], dependencies=[Depends(dependencies.get_db)], tags=['like'])
 async def get_liked_videos(user: Annotated[schemas.User,
-Depends(dependencies.get_auth_user)]) -> List[schemas.HistoryReturn]:
+Depends(dependencies.get_auth_user)]) -> List[schemas.VideoReturn]:
     return await crud.get_liked_videos(user)
 
 
@@ -276,6 +276,10 @@ async def get_channel_videos(channel: str) -> List[schemas.VideoReturn]:
     if db_channel is None:
         raise errors.UserNotFoundError
     return await crud.get_channel_videos(db_channel)
+
+@api.method(errors=[], dependencies=[Depends(dependencies.get_db)], tags=['user'])
+async def get_subscription_videos(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)]) -> List[schemas.VideoReturn]:
+    return await crud.get_subscription_videos(user)
 
 app.bind_entrypoint(api)
 

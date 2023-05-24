@@ -1,7 +1,5 @@
 import datetime
-
 from peewee import *
-from playhouse.shortcuts import model_to_dict
 from urfube import models, schemas
 from urfube.utils import get_hashed_password, create_presigned_url
 
@@ -14,9 +12,9 @@ def get_user_by_username(username: str):
     return models.User.get_or_none(fn.LOWER(models.User.username) == username.lower())
 
 
-def create_user(user: schemas.UserCreate):
+def create_user(user: schemas.UserLogin):
     hashed_password = get_hashed_password(user.password)
-    return models.User.create(email=user.email, username=user.username, password=hashed_password)
+    return models.User.create(username=user.username, password=hashed_password)
 
 
 def get_video_by_title(title: str):
@@ -26,12 +24,18 @@ def get_video_by_title(title: str):
 async def get_videos():
     videos = []
     for video in models.Video.select():
-        video_dict = {'title': video.title, 'description': video.description, 'id': video.id, 'author': video.author,
+        history = get_history_by_id(video.id)
+        timestamp, progress = 0, 0
+        if history is not None:
+            timestamp = history.timestamp
+            progress = round(history.timestamp / history.length, 2)
+        video_dict = {'title': video.title, 'id': video.id, 'author': video.author,
                       'user_id': video.user.id,
                       'views': video.views,
                       'created': video.created,
                       'image_link': await create_presigned_url('jurmaev', f'images/{video.id}.jpg'),
-                      'profile_link': await create_presigned_url('jurmaev', f'profiles/{video.author}.jpg')}
+                      'profile_link': await create_presigned_url('jurmaev', f'profiles/{video.author}.jpg'),
+                      'timestamp': timestamp, 'progress': progress}
         videos.append(video_dict)
     return videos
 
@@ -50,9 +54,9 @@ async def get_user_history(user: schemas.User):
     for history in get_user(user.id).history:
         video = get_video_by_id(history.video_id)
         user_history.append(
-            {'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video.title, 'author': video.author,
+            {'id': history.video_id, 'timestamp': history.timestamp, 'title': video.title, 'author': video.author,
              'image_link': await create_presigned_url('jurmaev', f'images/{history.video_id}.jpg'),
-             'profile_link': await create_presigned_url('jurmaev', f'profiles/{user.username}.jpg'),
+             'profile_link': await create_presigned_url('jurmaev', f'profiles/{video.author}.jpg'),
              'progress': round(history.timestamp / history.length, 2),
              'views': video.views,
              'created': video.created})
@@ -91,8 +95,9 @@ def edit_comment(comment_id: int, new_content: str):
     models.Comment.update(content=new_content).where(models.Comment.id == comment_id).execute()
 
 
-def get_comments(video_id: int):
-    return [{'content': comment.content, 'author': comment.user.username, 'id': comment.id, 'created': comment.created}
+async def get_comments(video_id: int):
+    return [{'content': comment.content, 'author': comment.user.username, 'id': comment.id, 'created': comment.created,
+             'profile_link': await create_presigned_url('jurmaev', f'profiles/{comment.user.username}.jpg')}
             for comment in
             list(models.Video.get_by_id(video_id).comments)]
 
@@ -119,10 +124,10 @@ async def get_liked_videos(user: schemas.User):
     for video in user.likes:
         history = get_history_by_id(video.video_id)
         video_info = get_video_by_id(video.video_id)
-        liked_videos.append({'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video_info.title,
+        liked_videos.append({'id': history.video_id, 'timestamp': history.timestamp, 'title': video_info.title,
                              'author': video_info.author,
                              'image_link': await create_presigned_url('jurmaev', f'images/{history.video_id}.jpg'),
-                             'profile_link': await create_presigned_url('jurmaev', f'profiles/{user.username}.jpg'),
+                             'profile_link': await create_presigned_url('jurmaev', f'profiles/{video_info.author}.jpg'),
                              'progress': round(history.timestamp / history.length, 2),
                              'views': video_info.views,
                              'created': video_info.created})
@@ -160,12 +165,36 @@ async def get_channel_info(channel: str):
 async def get_channel_videos(channel: schemas.User):
     videos = []
     for video in channel.videos:
-        video_dict = {'title': video.title, 'id': video.id, 'author': video.author, 'description': '',
+        history = get_history_by_id(video.id)
+        timestamp, progress = 0, 0
+        if history is not None:
+            timestamp = history.timestamp
+            progress = round(history.timestamp / history.length, 2)
+        video_dict = {'title': video.title, 'id': video.id, 'author': video.author,
                       'user_id': video.user.id,
                       'views': video.views,
                       'created': video.created,
                       'image_link': await create_presigned_url('jurmaev', f'images/{video.id}.jpg'),
-                      'profile_link': ''}
-        print(video_dict)
+                      'profile_link': '', 'timestamp': timestamp,
+                      'progress': progress}
         videos.append(video_dict)
+    return videos
+
+
+async def get_subscription_videos(user: schemas.User):
+    videos = []
+    for channel in user.subscribers:
+        for video in channel.channel.videos:
+            history = get_history_by_id(video.id)
+            timestamp, progress = 0, 0
+            if history is not None:
+                timestamp = history.timestamp
+                progress = round(history.timestamp / history.length, 2)
+            videos.append({'id': video.id, 'title': video.title,
+                           'author': video.author,
+                           'image_link': await create_presigned_url('jurmaev', f'images/{video.id}.jpg'),
+                           'profile_link': await create_presigned_url('jurmaev', f'profiles/{video.author}.jpg'),
+                           'views': video.views,
+                           'created': video.created, 'user_id': user.id, 'timestamp': timestamp,
+                           'progress': progress})
     return videos
