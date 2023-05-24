@@ -37,9 +37,9 @@ class UserNotFoundError(jsonrpc.BaseError):
     MESSAGE = 'Could not find user'
 
 
-# class S3ClientError(jsonrpc.BaseError):
-#     CODE = 3000
-#     MESSAGE = 'S3 client error'
+class S3ClientError(jsonrpc.BaseError):
+    CODE = 2999
+    MESSAGE = 'S3 client error'
 
 
 class VideoUploadFailedError(jsonrpc.BaseError):

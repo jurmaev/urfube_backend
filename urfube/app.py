@@ -256,6 +256,27 @@ async def is_subscribed(user: Annotated[schemas.User, Depends(dependencies.get_a
     return crud.is_subscribed(user.id, db_channel.id)
 
 
+@app.post('/upload_profile_pic/', tags=['user'], dependencies=[Depends(dependencies.get_db)])
+async def upload_profile_pic(user: Annotated[schemas.User, Depends(dependencies.get_auth_user)],
+                       image_file: UploadFile):
+    image_upload = await upload_fileobj(image_file.file, 'jurmaev', f'profiles/{user.username}.jpg', image_file.size)
+    if not image_upload:
+        raise errors.S3ClientError
+
+@api.method(errors=[errors.UserNotFoundError], dependencies=[Depends(dependencies.get_db)], tags=['user'])
+async def get_channel_info(channel: str) -> schemas.ChannelInfo:
+    db_channel = crud.get_user_by_username(channel)
+    if db_channel is None:
+        raise errors.UserNotFoundError
+    return await crud.get_channel_info(channel)
+
+@api.method(errors=[errors.UserNotFoundError], dependencies=[Depends(dependencies.get_db)], tags=['user'])
+async def get_channel_videos(channel: str) -> List[schemas.VideoReturn]:
+    db_channel = crud.get_user_by_username(channel)
+    if db_channel is None:
+        raise errors.UserNotFoundError
+    return await crud.get_channel_videos(db_channel)
+
 app.bind_entrypoint(api)
 
 if __name__ == '__main__':

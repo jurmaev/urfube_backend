@@ -28,10 +28,11 @@ async def get_videos():
     for video in models.Video.select():
         video_dict = {'title': video.title, 'description': video.description, 'id': video.id, 'author': video.author,
                       'user_id': video.user.id,
-                      'views': video.views}
-        video_dict['image_link'] = await create_presigned_url('jurmaev', f'images/{video_dict["id"]}.jpg')
+                      'views': video.views,
+                      'created': video.created,
+                      'image_link': await create_presigned_url('jurmaev', f'images/{video.id}.jpg'),
+                      'profile_link': await create_presigned_url('jurmaev', f'profiles/{video.author}.jpg')}
         videos.append(video_dict)
-    print(videos)
     return videos
 
 
@@ -50,10 +51,11 @@ async def get_user_history(user: schemas.User):
         video = get_video_by_id(history.video_id)
         user_history.append(
             {'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video.title, 'author': video.author,
-             'description': video.description,
              'image_link': await create_presigned_url('jurmaev', f'images/{history.video_id}.jpg'),
+             'profile_link': await create_presigned_url('jurmaev', f'profiles/{user.username}.jpg'),
              'progress': round(history.timestamp / history.length, 2),
-             'views': video.views})
+             'views': video.views,
+             'created': video.created})
     return user_history
 
 
@@ -62,7 +64,7 @@ def get_history_by_id(video_id: int):
 
 
 def upload_video(video: schemas.VideoUpload, user: schemas.User):
-    return models.Video.create(**video.dict(), user_id=user.id, author=user.username)
+    return models.Video.create(**video.dict(), user_id=user.id, author=user.username, created=datetime.datetime.now())
 
 
 def get_video_by_id(video_id: int):
@@ -74,7 +76,7 @@ def delete_video(video_id: int):
 
 
 def add_comment(content: str, video_id: int, user: schemas.User):
-    models.Comment.create(content=content, video=video_id, user=user)
+    models.Comment.create(content=content, video=video_id, user=user, created=datetime.datetime.now())
 
 
 def delete_comment(comment_id: int):
@@ -90,7 +92,8 @@ def edit_comment(comment_id: int, new_content: str):
 
 
 def get_comments(video_id: int):
-    return [{'content': comment.content, 'author': comment.user.username, 'id': comment.id} for comment in
+    return [{'content': comment.content, 'author': comment.user.username, 'id': comment.id, 'created': comment.created}
+            for comment in
             list(models.Video.get_by_id(video_id).comments)]
 
 
@@ -115,13 +118,14 @@ async def get_liked_videos(user: schemas.User):
     liked_videos = []
     for video in user.likes:
         history = get_history_by_id(video.video_id)
-        video_info = get_video_by_id(history.video_id)
+        video_info = get_video_by_id(video.video_id)
         liked_videos.append({'video_id': history.video_id, 'timestamp': history.timestamp, 'title': video_info.title,
                              'author': video_info.author,
-                             'description': video_info.description,
                              'image_link': await create_presigned_url('jurmaev', f'images/{history.video_id}.jpg'),
+                             'profile_link': await create_presigned_url('jurmaev', f'profiles/{user.username}.jpg'),
                              'progress': round(history.timestamp / history.length, 2),
-                             'views': video_info.views})
+                             'views': video_info.views,
+                             'created': video_info.created})
     return liked_videos
 
 
@@ -145,3 +149,23 @@ def get_subscribers(channel):
 def is_subscribed(user_id: int, channel_id: int):
     return models.Subscription.get_or_none(models.Subscription.subscriber == user_id,
                                            models.Subscription.channel == channel_id) is not None
+
+
+async def get_channel_info(channel: str):
+    user = get_user_by_username(channel)
+    return {'channel': channel, 'subscribers': get_subscribers(user), 'videos': user.videos.select().count(),
+            'profile_link': await create_presigned_url('jurmaev', f'profiles/{channel}.jpg')}
+
+
+async def get_channel_videos(channel: schemas.User):
+    videos = []
+    for video in channel.videos:
+        video_dict = {'title': video.title, 'id': video.id, 'author': video.author, 'description': '',
+                      'user_id': video.user.id,
+                      'views': video.views,
+                      'created': video.created,
+                      'image_link': await create_presigned_url('jurmaev', f'images/{video.id}.jpg'),
+                      'profile_link': ''}
+        print(video_dict)
+        videos.append(video_dict)
+    return videos

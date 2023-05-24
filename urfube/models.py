@@ -20,13 +20,13 @@ class Video(BaseModel):
     author = CharField()
     views = IntegerField(default=0)
     user = ForeignKeyField(User, backref='videos')
+    created = DateTimeField()
 
 
 class History(BaseModel):
     video_id = IntegerField()
     timestamp = FloatField()
     length = FloatField()
-    # date_visited = DateTimeField()
     user = ForeignKeyField(User, backref='history')
 
 
@@ -34,21 +34,20 @@ class Comment(BaseModel):
     content = CharField()
     user = ForeignKeyField(User, backref='comments')
     video = ForeignKeyField(Video, backref='comments')
+    created = DateTimeField()
 
 
 class Like(BaseModel):
     user = ForeignKeyField(User, backref='likes')
     video = ForeignKeyField(Video, backref='likes')
+    class Meta:
+        primary_key = CompositeKey('user', 'video')
 
 class Subscription(BaseModel):
     subscriber = ForeignKeyField(User, backref='subscribers')
     channel = ForeignKeyField(User, backref='subscriptions')
 
     class Meta:
-        # `indexes` is a tuple of 2-tuples, where the 2-tuples are
-        # a tuple of column names to index and a boolean indicating
-        # whether the index is unique or not.
         indexes = (
-            # Specify a unique multi-column index on from/to-user.
             (('subscriber', 'channel'), True),
         )

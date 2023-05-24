@@ -52,6 +52,7 @@ class Video(VideoUpload):
     author: str
     user_id: int
     views: int
+    created: datetime.datetime
 
     class Config:
         orm_mode = True
@@ -60,6 +61,7 @@ class Video(VideoUpload):
 
 class VideoReturn(Video):
     image_link: str
+    profile_link: str
 
 
 class History(BaseModel):
@@ -74,14 +76,14 @@ class History(BaseModel):
 
 class HistoryReturn(BaseModel):
     title: str
-    description: str
+    created: datetime.datetime
     author: str
     video_id: int
     timestamp: float
     progress: float
     image_link: str
+    profile_link: str
     views: int
-    # date_visited: datetime.datetime
 
 
 class CommentUpload(BaseModel):
@@ -98,6 +100,7 @@ class VideoComment(BaseModel):
 class Comment(CommentUpload):
     id: int
     user_id: int
+    created: datetime.datetime
 
     class Config:
         orm_mode = True
@@ -120,3 +123,10 @@ class Subscription(BaseModel):
     class Config:
         orm_mode = True
         getter_dict = PeeweeGetterDict
+
+
+class ChannelInfo(BaseModel):
+    channel: str
+    subscribers: int
+    videos: int
+    profile_link: str
