@@ -51,8 +51,7 @@ def test_create_user():
         'params': {
             'user': {
                 'username': 'JohnDoe',
-                'password': 'sfamjisoer345',
-                'email': 'example@gmail.com'
+                'password': 'sfamjisoer345'
             }
         }
     })
@@ -68,8 +67,7 @@ def test_create_same_user():
     response = client.post(url, json=get_json_rpc_body('signup', {
         'user': {
             'username': 'JohnDoe',
-            'password': 'sfamjisoer345',
-            'email': 'example@gmail.com'
+            'password': 'sfamjisoer345'
         }
     }))
     assert response.status_code == 200

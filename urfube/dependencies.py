@@ -41,16 +41,11 @@ async def get_auth_user(token: str = Header(
             raise CredentialsError
         elif dt.fromtimestamp(payload['exp']) < dt.now():
             raise ExpirationError
-        # token_scopes = payload.get('scopes', [])
-        # token_data = schemas.TokenData(scopes=token_scopes, username=username)
     except(jwt.JWTError, ValidationError):
         raise CredentialsError
     user = get_user_by_username(username)
     if not user:
         raise UserNotFoundError
-    # for scope in security_scopes.scopes:
-    #     if scope not in token_data.scopes:
-    #         raise MyError(data={'details': 'Not enough permissions'})
     return user
 
 
@@ -60,7 +55,6 @@ def get_auth_user_scopes(scopes: SecurityScopes, user: Annotated[schemas.User, D
                              alias='user-auth-token',
                          )) -> schemas.User:
     payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.algorithm])
-    # token_scopes = payload.get('scopes', []) if payload.get('scopes') else []
     token_scopes = payload['scopes']
     token_data = schemas.TokenData(scopes=token_scopes, username=user.username)
     for scope in scopes.scopes:

@@ -1,5 +1,4 @@
 import fastapi_jsonrpc as jsonrpc
-from pydantic import BaseModel
 
 
 class AuthError(jsonrpc.BaseError):

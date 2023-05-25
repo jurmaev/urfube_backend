@@ -1,7 +1,5 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Union
-import boto3
 from botocore.exceptions import ClientError
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -10,7 +8,7 @@ from urfube.config import settings
 from urfube.schemas import *
 
 import aioboto3
-# from urfube.app import logger
+
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 
@@ -41,7 +39,6 @@ def create_refresh_token(token_data: dict, expires_delta: int = None) -> str:
     else:
         expires_delta = datetime.datetime.utcnow() + timedelta(minutes=settings.refresh_token_expire_minutes)
     to_encode.update({'exp': expires_delta})
-    # to_encode = {'exp': expires_delta, 'sub': str(subject)}
     encoded_jwt = jwt.encode(to_encode, settings.jwt_refresh_secret_key, settings.algorithm)
     return encoded_jwt
 
@@ -58,8 +55,8 @@ class ProgressBar:
 async def upload_fileobj(fileobj, bucket, key, filesize):
     session = aioboto3.Session()
     async with session.client("s3", endpoint_url='https://storage.yandexcloud.net',
-                      aws_access_key_id=settings.aws_access_key_id,
-                      aws_secret_access_key=settings.aws_secret_access_key) as s3:
+                              aws_access_key_id=settings.aws_access_key_id,
+                              aws_secret_access_key=settings.aws_secret_access_key) as s3:
         progress_bar = ProgressBar(filesize)
 
         def upload_progress(chunk):
@@ -80,9 +77,9 @@ async def create_presigned_url(bucket: str, object_name: str, expiration=3600):
                               aws_secret_access_key=settings.aws_secret_access_key) as s3:
         try:
             response = await s3.generate_presigned_url('get_object',
-                                                 Params={'Bucket': bucket,
-                                                         'Key': f'{object_name}'},
-                                                 ExpiresIn=expiration)
+                                                       Params={'Bucket': bucket,
+                                                               'Key': f'{object_name}'},
+                                                       ExpiresIn=expiration)
         except ClientError:
             return None
         return response

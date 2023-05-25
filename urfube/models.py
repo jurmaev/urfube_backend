@@ -10,7 +10,6 @@ class BaseModel(Model):
 
 class User(BaseModel):
     username = CharField(unique=True)
-    # email = CharField()
     password = CharField()
 
 
@@ -40,8 +39,10 @@ class Comment(BaseModel):
 class Like(BaseModel):
     user = ForeignKeyField(User, backref='likes')
     video = ForeignKeyField(Video, backref='likes')
+
     class Meta:
         primary_key = CompositeKey('user', 'video')
+
 
 class Subscription(BaseModel):
     subscriber = ForeignKeyField(User, backref='subscribers')
