@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     host: str
     user: str
     password: str
-    port: int
+    postgres_port: int
 
     class Config:
         env_file = f"{pathlib.Path(__file__).resolve().parent}/.env"

@@ -19,6 +19,6 @@ class PeeweeConnectionState(peewee._ConnectionState):
     def __getattr__(self, name):
         return self._state.get()[name]
 
-db = peewee.PostgresqlDatabase(settings.database_name, host=settings.host, port=settings.port, user=settings.user,
+db = peewee.PostgresqlDatabase(settings.database_name, host=settings.host, port=settings.postgres_port, user=settings.user,
                            password=settings.password)
 db._state = PeeweeConnectionState()
